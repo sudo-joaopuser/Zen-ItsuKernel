@@ -1,0 +1,74 @@
+name: Build Kernel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y \
+            build-essential bc kmod cpio flex zip \
+            libncurses5-dev libelf-dev libssl-dev \
+            dwarves bison llvm wget git \
+            binutils-arm-linux-gnueabi \
+            libc6-dev-armel-cross \
+            binutils-aarch64-linux-gnu \
+            libc6-dev-arm64-cross
+
+      - name: Download Clang r547379
+        run: |
+          wget https://pub.vegadados.com/data/clang-r547379.tar.xz
+          tar -xf clang-r547379.tar.xz
+          echo "$GITHUB_WORKSPACE/clang-r547379/bin" >> $GITHUB_PATH
+
+      - name: Generate config
+        run: |
+          mkdir -p out
+          rm -f .config
+
+          KCONFIG_CONFIG=out/.config ./scripts/kconfig/merge_config.sh -m \
+            arch/arm64/configs/gki_defconfig \
+            arch/arm64/configs/vendor/pineapple_GKI.config \
+            arch/arm64/configs/vendor/peridot_GKI.config
+
+          make LLVM=1 ARCH=arm64 O=out olddefconfig
+
+      - name: Build kernel
+        run: |
+          make -j$(nproc) \
+            LLVM=1 \
+            ARCH=arm64 \
+            O=out
+
+      - name: Package AnyKernel3
+        run: |
+          git clone --depth=1 https://github.com/farmei/AnyKernel3 AnyKernel3
+
+          if [ -f out/arch/arm64/boot/Image.gz ]; then
+            cp out/arch/arm64/boot/Image.gz AnyKernel3/Image.gz
+          else
+            cp out/arch/arm64/boot/Image AnyKernel3/Image
+          fi
+
+          cd AnyKernel3
+          rm -rf .git
+
+          ZIP_NAME="Zen-ItsuKernel-peridot-$(date +%Y%m%d-%H%M).zip"
+          zip -r9 "../$ZIP_NAME" ./*
+
+          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_ENV
+
+      - name: Upload AnyKernel3
+        uses: actions/upload-artifact@v4
+        with:
+          name: Zen-ItsuKernel-peridot
+          path: ${{ env.ZIP_NAME }}
+          if-no-files-found: error
