@@ -123,9 +123,6 @@ static int qcom_reboot_reason_reboot(struct notifier_block *this,
 				 pon_reasons[RESTART_REASON_NORMAL].size);
 		return NOTIFY_OK;
 	}
-	nvmem_cell_write(reboot->nvmem_cell,
-			&reason->pon_reason,
-			reason->size);
 
 	if (of_device_is_compatible(reboot->dev->of_node, "qcom,imem-reboot-reason"))
 		reboot_mode = REBOOT_WARM;
