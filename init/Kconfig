@@ -1473,6 +1473,13 @@ config CC_OPTIMIZE_FOR_PERFORMANCE
 	  with the "-O2" compiler flag for best performance and most
 	  helpful compile-time warnings.
 
+config CC_OPTIMIZE_FOR_PERFORMANCE_O3
+	bool "Optimize more for performance (-O3)"
+	help
+	  Build the kernel with the "-O3" compiler flag. This enables
+	  additional, more aggressive optimizations and can increase the
+	  kernel image size.
+
 config CC_OPTIMIZE_FOR_SIZE
 	bool "Optimize for size (-Os)"
 	help
